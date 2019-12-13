@@ -1,32 +1,49 @@
 import oauth2
 import json
 import urllib.parse
-from pprint import pprint
-
-keys = ['WRXnyJds71yDayQaXFxPpI2jv', 
-'AjpaogRVFUyuZTfvaNgwj08J0pD3n6f1k08BjUUlapnUFca2w4',
-'799122088594460672-vzJloX2qozKzEuJhNuyB1oew8rJSEzF', 
-'COd1bb65SodeBgD7zPTseuZ9lUBpkeeapROr0MXFprlqz'] 
+import configparser
 
 class twitter:
-    def __init__(self, keys):
-        self.keys = keys
+    def __init__(self, configs_auth, configs_req):
+        # COnstruir objetos de configuração 
+        self.configs_auth = configs_auth 
+        self.configs_req = configs_req 
 
     def auth_twitter(self):
-        consumer = oauth2.Consumer(keys[0], keys[1])
-        token = oauth2.Token(keys[2], keys[3])
+        # Autenticar as chaves de consumer
+        consumer = oauth2.Consumer(self.configs_auth['consumer_key'], self.configs_auth['consumer_secret'])
+        # Autenticar as chaves de token
+        token = oauth2.Token(self.configs_auth['token_key'], self.configs_auth['token_secret'])
+        # Realizar a autenticação (Consumer/Token)
         client = oauth2.Client(consumer, token)
         return client
 
-    def post_twitter(self, client):
-        query = input("Novo tweet: ")
+    def request_twitter(self, client):
+        # Receber entrada do usuario
+        query = input("Digite: ")
+        # Codificar a query
         query_coded = urllib.parse.quote(query, safe='')
-        req = client.request('https://api.twitter.com/1.1/statuses/update.json?status=' + query_coded, method='POST')
+        # Realizar a requisição
+        req = client.request(self.configs_req['url_post'] + query_coded + '&lang=pt', method='POST')
+        # Decodificar a requisição
         decoded = req[1].decode()
+        # Carregar json retornado
         obj = json.loads(decoded)
         return obj
 
-res = twitter(keys)
-client = res.auth_twitter()
-post = res.post_twitter(client)
-pprint(post)
+if __name__ == "__main__":
+    # Biblioteca para ler arquivo de 
+    # configuração com chaves e urls para requisição
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    # Busca sessão auth_configuration e urls no config.ini
+    config_auth = config['auth_configuration']
+    config_req = config['urls']
+    # Instancia a classe passando as configurações
+    res = twitter(config_auth, config_req)
+    # Faz a autenticação
+    client = res.auth_twitter()
+    # Realiza a requisição(POST/GET) para a API
+    post = res.request_twitter(client)
+    # Imprime o resultado
+    print(post)
